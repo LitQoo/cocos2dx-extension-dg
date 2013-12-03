@@ -9,7 +9,7 @@ using namespace std;
 
 NS_CC_EXT_BEGIN
 #if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
-#include "CCFileUtils.h"
+#include "../../platform/CCFileUtils.h"
 //documentPath = CCFileUtils::sharedFileUtils()->getWritablePath();
 #elif CC_TARGET_PLATFORM == CC_PLATFORM_IOS
 #import <UIKit/UIKit.h>
