@@ -259,6 +259,53 @@ CCNode* CCBReader::readNodeGraphFromFile(const char *pCCBFileName, CCObject *pOw
     return ret;
 }
 
+CCNode* CCBReader::readNodeGraphFromDataForFullPath(CCData *pData, CCObject *pOwner, const CCSize &parentSize)
+{
+	mData = pData;
+	CC_SAFE_RETAIN(mData);
+	mBytes = mData->getBytes();
+	mCurrentByte = 0;
+	mCurrentBit = 0;
+	mOwner = pOwner;
+	CC_SAFE_RETAIN(mOwner);
+	
+	mActionManager->setRootContainerSize(parentSize);
+	mActionManager->mOwner = mOwner;
+	mOwnerOutletNodes = new CCArray();
+	mOwnerCallbackNodes = new CCArray();
+	
+	CCDictionary* animationManagers = CCDictionary::create();
+	CCNode *pNodeGraph = readFileWithCleanUpForFullPath(true, animationManagers);
+	
+	if (pNodeGraph && mActionManager->getAutoPlaySequenceId() != -1 && !jsControlled)
+	{
+		// Auto play animations
+		mActionManager->runAnimationsForSequenceIdTweenDuration(mActionManager->getAutoPlaySequenceId(), 0);
+	}
+	// Assign actionManagers to userObject
+	if(jsControlled) {
+		mNodesWithAnimationManagers = new CCArray();
+		mAnimationManagersForNodes = new CCArray();
+	}
+	
+	CCDictElement* pElement = NULL;
+	CCDICT_FOREACH(animationManagers, pElement)
+	{
+		CCNode* pNode = (CCNode*)pElement->getIntKey();
+		CCBAnimationManager* manager = (CCBAnimationManager*)animationManagers->objectForKey((intptr_t)pNode);
+		pNode->setUserObject(manager);
+		
+		if (jsControlled)
+		{
+			mNodesWithAnimationManagers->addObject(pNode);
+			mAnimationManagersForNodes->addObject(manager);
+		}
+	}
+	
+	return pNodeGraph;
+}
+
+
 CCNode* CCBReader::readNodeGraphFromData(CCData *pData, CCObject *pOwner, const CCSize &parentSize)
 {
     mData = pData;
@@ -275,7 +322,7 @@ CCNode* CCBReader::readNodeGraphFromData(CCData *pData, CCObject *pOwner, const 
     mOwnerCallbackNodes = new CCArray();
     
     CCDictionary* animationManagers = CCDictionary::create();
-    CCNode *pNodeGraph = readFileWithCleanUp(true, animationManagers);
+    CCNode *pNodeGraph = readFileWithCleanUpForFullPath(true, animationManagers);
     
     if (pNodeGraph && mActionManager->getAutoPlaySequenceId() != -1 && !jsControlled)
     {
@@ -333,6 +380,37 @@ void CCBReader::cleanUpNodeGraph(CCNode *pNode)
     {
         cleanUpNodeGraph((CCNode*)pChild);
     }
+}
+
+CCNode* CCBReader::readFileWithCleanUpForFullPath(bool bCleanUp, CCDictionary* am)
+{
+	if (! readHeader())
+	{
+		return NULL;
+	}
+	
+	if (! readStringCache())
+	{
+		return NULL;
+	}
+	
+	if (! readSequences())
+	{
+		return NULL;
+	}
+	
+	setAnimationManagers(am);
+	
+	CCNode *pNode = readNodeGraphForFullPath(NULL);
+	
+	mActionManagers->setObject(mActionManager, intptr_t(pNode));
+	
+	if (bCleanUp)
+	{
+		cleanUpNodeGraph(pNode);
+	}
+	
+	return pNode;
 }
 
 CCNode* CCBReader::readFileWithCleanUp(bool bCleanUp, CCDictionary* am)
@@ -539,26 +617,235 @@ std::string CCBReader::readCachedString() {
     int n = this->readInt(false);
     return this->mStringCache[n];
 }
-
+CCNode * CCBReader::readNodeGraphForFullPath(CCNode * pParent) {
+	/* Read class name. */
+	std::string className = this->readCachedString();
+	
+	std::string jsControlledName;
+	
+	if(jsControlled) {
+		jsControlledName = this->readCachedString();
+	}
+	
+	// Read assignment type and name
+	int memberVarAssignmentType = this->readInt(false);
+	std::string memberVarAssignmentName;
+	if(memberVarAssignmentType != kCCBTargetTypeNone) {
+		memberVarAssignmentName = this->readCachedString();
+	}
+	
+	CCNodeLoader *ccNodeLoader = this->mCCNodeLoaderLibrary->getCCNodeLoader(className.c_str());
+	
+	if (! ccNodeLoader)
+	{
+		CCLog("no corresponding node loader for %s", className.c_str());
+		return NULL;
+	}
+	
+	CCNode *node = ccNodeLoader->loadCCNode(pParent, this);
+	
+	// Set root node
+	if (! mActionManager->getRootNode())
+	{
+		mActionManager->setRootNode(node);
+	}
+	
+	// Assign controller
+	if(jsControlled && node == mActionManager->getRootNode())
+	{
+		mActionManager->setDocumentControllerName(jsControlledName);
+	}
+	
+	// Read animated properties
+	CCDictionary *seqs = CCDictionary::create();
+	mAnimatedProps = new set<string>();
+	
+	int numSequence = readInt(false);
+	for (int i = 0; i < numSequence; ++i)
+	{
+		int seqId = readInt(false);
+		CCDictionary *seqNodeProps = CCDictionary::create();
+		
+		int numProps = readInt(false);
+		
+		for (int j = 0; j < numProps; ++j)
+		{
+			CCBSequenceProperty *seqProp = new CCBSequenceProperty();
+			seqProp->autorelease();
+			
+			seqProp->setName(readCachedString().c_str());
+			seqProp->setType(readInt(false));
+			mAnimatedProps->insert(seqProp->getName());
+			
+			int numKeyframes = readInt(false);
+			
+			for (int k = 0; k < numKeyframes; ++k)
+			{
+				CCBKeyframe *keyframe = readKeyframe(seqProp->getType());
+				
+				seqProp->getKeyframes()->addObject(keyframe);
+			}
+			
+			seqNodeProps->setObject(seqProp, seqProp->getName());
+		}
+		
+		seqs->setObject(seqNodeProps, seqId);
+	}
+	
+	if (seqs->count() > 0)
+	{
+		mActionManager->addNode(node, seqs);
+	}
+	
+	// Read properties
+	ccNodeLoader->parsePropertiesForFullPath(node, pParent, this);
+	
+	bool isCCBFileNode = (NULL == dynamic_cast<CCBFile*>(node)) ? false : true;
+	// Handle sub ccb files (remove middle node)
+	if (isCCBFileNode)
+	{
+		CCBFile *ccbFileNode = (CCBFile*)node;
+		
+		CCNode *embeddedNode = ccbFileNode->getCCBFileNode();
+		embeddedNode->setPosition(ccbFileNode->getPosition());
+		embeddedNode->setRotation(ccbFileNode->getRotation());
+		embeddedNode->setScaleX(ccbFileNode->getScaleX());
+		embeddedNode->setScaleY(ccbFileNode->getScaleY());
+		embeddedNode->setTag(ccbFileNode->getTag());
+		embeddedNode->setVisible(true);
+		//embeddedNode->ignoreAnchorPointForPosition(ccbFileNode->isIgnoreAnchorPointForPosition());
+		
+		mActionManager->moveAnimationsFromNode(ccbFileNode, embeddedNode);
+		
+		ccbFileNode->setCCBFileNode(NULL);
+		
+		node = embeddedNode;
+	}
+	
+#ifdef CCB_ENABLE_JAVASCRIPT
+	/*
+	 if (memberVarAssignmentType && memberVarAssignmentName && ![memberVarAssignmentName isEqualToString:@""])
+	 {
+	 [[JSCocoa sharedController] setObject:node withName:memberVarAssignmentName];
+	 }*/
+#else
+	if (memberVarAssignmentType != kCCBTargetTypeNone)
+	{
+		if(!jsControlled)
+		{
+			CCObject * target = NULL;
+			if(memberVarAssignmentType == kCCBTargetTypeDocumentRoot)
+			{
+				target = mActionManager->getRootNode();
+			}
+			else if(memberVarAssignmentType == kCCBTargetTypeOwner)
+			{
+				target = this->mOwner;
+			}
+			
+			if(target != NULL)
+			{
+				CCBMemberVariableAssigner * targetAsCCBMemberVariableAssigner = dynamic_cast<CCBMemberVariableAssigner *>(target);
+				
+				bool assigned = false;
+				if (memberVarAssignmentType != kCCBTargetTypeNone)
+				{
+					if(targetAsCCBMemberVariableAssigner != NULL) {
+						assigned = targetAsCCBMemberVariableAssigner->onAssignCCBMemberVariable(target, memberVarAssignmentName.c_str(), node);
+					}
+					
+					if(!assigned && this->mCCBMemberVariableAssigner != NULL) {
+						assigned = this->mCCBMemberVariableAssigner->onAssignCCBMemberVariable(target, memberVarAssignmentName.c_str(), node);
+					}
+				}
+			}
+		}
+		else
+		{
+			if(memberVarAssignmentType == kCCBTargetTypeDocumentRoot) {
+				mActionManager->addDocumentOutletName(memberVarAssignmentName);
+				mActionManager->addDocumentOutletNode(node);
+			} else {
+				mOwnerOutletNames.push_back(memberVarAssignmentName);
+				mOwnerOutletNodes->addObject(node);
+			}
+		}
+	}
+	
+	// Assign custom properties.
+	if (ccNodeLoader->getCustomProperties()->count() > 0) {
+		
+		bool customAssigned = false;
+		
+		if(!jsControlled)
+		{
+			CCObject * target = node;
+			if(target != NULL)
+			{
+				CCBMemberVariableAssigner * targetAsCCBMemberVariableAssigner = dynamic_cast<CCBMemberVariableAssigner *>(target);
+				if(targetAsCCBMemberVariableAssigner != NULL) {
+					
+					CCDictionary* pCustomPropeties = ccNodeLoader->getCustomProperties();
+					CCDictElement* pElement;
+					CCDICT_FOREACH(pCustomPropeties, pElement)
+					{
+						customAssigned = targetAsCCBMemberVariableAssigner->onAssignCCBCustomProperty(target, pElement->getStrKey(), (CCBValue*)pElement->getObject());
+						
+						if(!customAssigned && this->mCCBMemberVariableAssigner != NULL)
+						{
+							customAssigned = this->mCCBMemberVariableAssigner->onAssignCCBCustomProperty(target, pElement->getStrKey(), (CCBValue*)pElement->getObject());
+						}
+					}
+				}
+			}
+		}
+	}
+	
+#endif // CCB_ENABLE_JAVASCRIPT
+	
+	delete mAnimatedProps;
+	mAnimatedProps = NULL;
+	
+	/* Read and add children. */
+	int numChildren = this->readInt(false);
+	for(int i = 0; i < numChildren; i++) {
+		CCNode * child = this->readNodeGraphForFullPath(node);
+		node->addChild(child);
+	}
+	
+	// FIX ISSUE #1860: "onNodeLoaded will be called twice if ccb was added as a CCBFile".
+	// If it's a sub-ccb node, skip notification to CCNodeLoaderListener since it will be
+	// notified at LINE #734: CCNode * child = this->readNodeGraph(node);
+	if (!isCCBFileNode) {
+		// Call onNodeLoaded
+		CCNodeLoaderListener * nodeAsCCNodeLoaderListener = dynamic_cast<CCNodeLoaderListener *>(node);
+		if(nodeAsCCNodeLoaderListener != NULL) {
+			nodeAsCCNodeLoaderListener->onNodeLoaded(node, ccNodeLoader);
+		} else if(this->mCCNodeLoaderListener != NULL) {
+			this->mCCNodeLoaderListener->onNodeLoaded(node, ccNodeLoader);
+		}
+	}
+	return node;
+}
 CCNode * CCBReader::readNodeGraph(CCNode * pParent) {
     /* Read class name. */
     std::string className = this->readCachedString();
 
     std::string jsControlledName;
-    
+  
     if(jsControlled) {
         jsControlledName = this->readCachedString();
     }
-    
+  
     // Read assignment type and name
     int memberVarAssignmentType = this->readInt(false);
     std::string memberVarAssignmentName;
     if(memberVarAssignmentType != kCCBTargetTypeNone) {
         memberVarAssignmentName = this->readCachedString();
     }
-    
+  
     CCNodeLoader *ccNodeLoader = this->mCCNodeLoaderLibrary->getCCNodeLoader(className.c_str());
-     
+  
     if (! ccNodeLoader)
     {
         CCLog("no corresponding node loader for %s", className.c_str());
@@ -572,7 +859,7 @@ CCNode * CCBReader::readNodeGraph(CCNode * pParent) {
     {
         mActionManager->setRootNode(node);
     }
-    
+  
     // Assign controller
     if(jsControlled && node == mActionManager->getRootNode())
     {
@@ -582,7 +869,7 @@ CCNode * CCBReader::readNodeGraph(CCNode * pParent) {
     // Read animated properties
     CCDictionary *seqs = CCDictionary::create();
     mAnimatedProps = new set<string>();
-    
+  
     int numSequence = readInt(false);
     for (int i = 0; i < numSequence; ++i)
     {

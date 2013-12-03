@@ -214,7 +214,8 @@ public:
     CCNode* readNodeGraphFromFile(const char *pCCBFileName);
     CCNode* readNodeGraphFromFile(const char *pCCBFileName, CCObject *pOwner);
     CCNode* readNodeGraphFromFile(const char *pCCBFileName, CCObject *pOwner, const CCSize &parentSize);
-    
+  
+	CCNode*	readNodeGraphFromDataForFullPath(CCData *pData, CCObject *pOwner, const CCSize &parentSize);
     CCNode* readNodeGraphFromData(CCData *pData, CCObject *pOwner, const CCSize &parentSize);
    
     CCScene* createSceneWithNodeGraphFromFile(const char *pCCBFileName);
@@ -245,6 +246,7 @@ public:
     std::string readUTF8();
     float readFloat();
     std::string readCachedString();
+	
     bool isJSControlled();
             
     
@@ -271,7 +273,7 @@ public:
     
     static float getResolutionScale();
     static void setResolutionScale(float scale);
-    
+	CCNode* readFileWithCleanUpForFullPath(bool bCleanUp, CCDictionary* am);
     CCNode* readFileWithCleanUp(bool bCleanUp, CCDictionary* am);
     
     void addOwnerOutletName(std::string name);
@@ -287,7 +289,7 @@ private:
     //void readStringCacheEntry();
     CCNode* readNodeGraph();
     CCNode* readNodeGraph(CCNode * pParent);
-
+	CCNode * readNodeGraphForFullPath(CCNode * pParent);
     bool getBit();
     void alignBits();
 

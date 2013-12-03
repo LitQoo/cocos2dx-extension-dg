@@ -50,6 +50,7 @@ class CCNodeLoader : public CCObject {
         CCB_STATIC_NEW_AUTORELEASE_OBJECT_METHOD(CCNodeLoader, loader);
 
         virtual CCNode * loadCCNode(CCNode *, CCBReader * pCCBReader);
+				void parsePropertiesForFullPath(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader);
         virtual void parseProperties(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader);
         virtual CCDictionary* getCustomProperties();
     
@@ -68,6 +69,7 @@ class CCNodeLoader : public CCObject {
         virtual int parsePropTypeIntegerLabeled(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader);
         virtual float * parsePropTypeFloatVar(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader);
         virtual bool parsePropTypeCheck(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader, const char *pPropertyName);
+				CCSpriteFrame * parsePropTypeSpriteFrameForFullPath(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader, const char *pPropertyName);
         virtual CCSpriteFrame * parsePropTypeSpriteFrame(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader, const char *pPropertyName);
         virtual CCAnimation * parsePropTypeAnimation(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader);
         virtual CCTexture2D * parsePropTypeTexture(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader);

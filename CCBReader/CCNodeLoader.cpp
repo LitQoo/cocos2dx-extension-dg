@@ -8,7 +8,12 @@
 using namespace std;
 
 NS_CC_EXT_BEGIN
-
+#if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
+#include "CCFileUtils.h"
+//documentPath = CCFileUtils::sharedFileUtils()->getWritablePath();
+#elif CC_TARGET_PLATFORM == CC_PLATFORM_IOS
+#import <UIKit/UIKit.h>
+#endif
 CCNodeLoader::CCNodeLoader()
 {
     m_pCustomProperties = new CCDictionary();
@@ -32,6 +37,327 @@ CCNode * CCNodeLoader::loadCCNode(CCNode * pParent, CCBReader * pCCBReader) {
     return ccNode;
 }
 
+void CCNodeLoader::parsePropertiesForFullPath(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader) {
+	int numRegularProps = pCCBReader->readInt(false);
+	int numExturaProps = pCCBReader->readInt(false);
+	int propertyCount = numRegularProps + numExturaProps;
+	
+	for(int i = 0; i < propertyCount; i++) {
+		bool isExtraProp = (i >= numRegularProps);
+		int type = pCCBReader->readInt(false);
+		std::string propertyName = pCCBReader->readCachedString();
+		
+		// Check if the property can be set for this platform
+		bool setProp = false;
+		
+		int platform = pCCBReader->readByte();
+		if(platform == kCCBPlatformAll)
+		{
+			setProp = true;
+		}
+		// Cocos2d-x is using touch event callback for all platforms,
+		// it's different from cocos2d-iphone which uses mouse event for Mac port.
+		// So we just need to touch event by using kCCBPlatformIOS.
+		//#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS) || (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+		if(platform == kCCBPlatformIOS)
+		{
+			setProp = true;
+		}
+		// #elif (CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
+		//         if(platform == kCCBPlatformMac)
+		//         {
+		//             setProp = true;
+		//         }
+		// #endif
+		
+		// Forward properties for sub ccb files
+		if (dynamic_cast<CCBFile*>(pNode) != NULL)
+		{
+			CCBFile *ccbNode = (CCBFile*)pNode;
+			if (ccbNode->getCCBFileNode() && isExtraProp)
+			{
+				pNode = ccbNode->getCCBFileNode();
+				
+				// Skip properties that doesn't have a value to override
+				CCArray *extraPropsNames = (CCArray*)pNode->getUserObject();
+				CCObject* pObj = NULL;
+				bool bFound = false;
+				CCARRAY_FOREACH(extraPropsNames, pObj)
+				{
+					CCString* pStr = (CCString*)pObj;
+					if (0 == pStr->compare(propertyName.c_str()))
+					{
+						bFound = true;
+						break;
+					}
+				}
+				setProp &= bFound;
+			}
+		}
+		else if (isExtraProp && pNode == pCCBReader->getAnimationManager()->getRootNode())
+		{
+			CCArray *extraPropsNames = (CCArray*)pNode->getUserObject();
+			if (! extraPropsNames)
+			{
+				extraPropsNames = CCArray::create();
+				pNode->setUserObject(extraPropsNames);
+			}
+			
+			extraPropsNames->addObject(CCString::create(propertyName));
+		}
+		
+		switch(type)
+		{
+			case kCCBPropTypePosition:
+			{
+				CCPoint position = this->parsePropTypePosition(pNode, pParent, pCCBReader, propertyName.c_str());
+				if (setProp)
+				{
+					this->onHandlePropTypePosition(pNode, pParent, propertyName.c_str(), position, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypePoint:
+			{
+				CCPoint point = this->parsePropTypePoint(pNode, pParent, pCCBReader);
+				if (setProp)
+				{
+					this->onHandlePropTypePoint(pNode, pParent, propertyName.c_str(), point, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypePointLock:
+			{
+				CCPoint pointLock = this->parsePropTypePointLock(pNode, pParent, pCCBReader);
+				if (setProp)
+				{
+					this->onHandlePropTypePointLock(pNode, pParent, propertyName.c_str(), pointLock, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeSize: {
+				CCSize size = this->parsePropTypeSize(pNode, pParent, pCCBReader);
+				if(setProp) {
+					this->onHandlePropTypeSize(pNode, pParent, propertyName.c_str(), size, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeScaleLock:
+			{
+				float * scaleLock = this->parsePropTypeScaleLock(pNode, pParent, pCCBReader, propertyName.c_str());
+				if(setProp)
+				{
+					this->onHandlePropTypeScaleLock(pNode, pParent, propertyName.c_str(), scaleLock, pCCBReader);
+				}
+				CC_SAFE_DELETE_ARRAY(scaleLock);
+				break;
+			}
+			case kCCBPropTypeFloat:
+			{
+				float f = this->parsePropTypeFloat(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeFloat(pNode, pParent, propertyName.c_str(), f, pCCBReader);
+				}
+				break;
+			}
+	    case kCCBPropTypeFloatXY:
+			{
+				float * xy =  this->parsePropTypeFloatXY(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeFloatXY(pNode, pParent, propertyName.c_str(), xy, pCCBReader);
+				}
+				CC_SAFE_DELETE_ARRAY(xy);
+				break;
+			}
+				
+			case kCCBPropTypeDegrees:
+			{
+				float degrees = this->parsePropTypeDegrees(pNode, pParent, pCCBReader, propertyName.c_str());
+				if(setProp)
+				{
+					this->onHandlePropTypeDegrees(pNode, pParent, propertyName.c_str(), degrees, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeFloatScale:
+			{
+				float floatScale = this->parsePropTypeFloatScale(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeFloatScale(pNode, pParent, propertyName.c_str(), floatScale, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeInteger:
+			{
+				int integer = this->parsePropTypeInteger(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeInteger(pNode, pParent, propertyName.c_str(), integer, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeIntegerLabeled:
+			{
+				int integerLabeled = this->parsePropTypeIntegerLabeled(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeIntegerLabeled(pNode, pParent, propertyName.c_str(), integerLabeled, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeFloatVar:
+			{
+				float * floatVar = this->parsePropTypeFloatVar(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeFloatVar(pNode, pParent, propertyName.c_str(), floatVar, pCCBReader);
+				}
+				CC_SAFE_DELETE_ARRAY(floatVar);
+				break;
+			}
+			case kCCBPropTypeCheck:
+			{
+				bool check = this->parsePropTypeCheck(pNode, pParent, pCCBReader, propertyName.c_str());
+				if(setProp)
+				{
+					this->onHandlePropTypeCheck(pNode, pParent, propertyName.c_str(), check, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeSpriteFrame: {
+				CCSpriteFrame * ccSpriteFrame = this->parsePropTypeSpriteFrameForFullPath(pNode, pParent, pCCBReader, propertyName.c_str());
+				if(setProp)
+				{
+					this->onHandlePropTypeSpriteFrame(pNode, pParent, propertyName.c_str(), ccSpriteFrame, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeAnimation:
+			{
+				CCAnimation * ccAnimation = this->parsePropTypeAnimation(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeAnimation(pNode, pParent, propertyName.c_str(), ccAnimation, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeTexture:
+			{
+				CCTexture2D * ccTexture2D = this->parsePropTypeTexture(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeTexture(pNode, pParent, propertyName.c_str(), ccTexture2D, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeByte:
+			{
+				unsigned char byte = this->parsePropTypeByte(pNode, pParent, pCCBReader, propertyName.c_str());
+				if(setProp)
+				{
+					this->onHandlePropTypeByte(pNode, pParent, propertyName.c_str(), byte, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeColor3:
+			{
+				ccColor3B color3B = this->parsePropTypeColor3(pNode, pParent, pCCBReader, propertyName.c_str());
+				if(setProp)
+				{
+					this->onHandlePropTypeColor3(pNode, pParent, propertyName.c_str(), color3B, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeColor4FVar:
+			{
+				ccColor4F * color4FVar = this->parsePropTypeColor4FVar(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeColor4FVar(pNode, pParent, propertyName.c_str(), color4FVar, pCCBReader);
+				}
+				CC_SAFE_DELETE_ARRAY(color4FVar);
+				break;
+			}
+			case kCCBPropTypeFlip: {
+				bool * flip = this->parsePropTypeFlip(pNode, pParent, pCCBReader);
+				if(setProp) {
+					this->onHandlePropTypeFlip(pNode, pParent, propertyName.c_str(), flip, pCCBReader);
+				}
+				CC_SAFE_DELETE_ARRAY(flip);
+				break;
+			}
+			case kCCBPropTypeBlendmode:
+			{
+				ccBlendFunc blendFunc = this->parsePropTypeBlendFunc(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeBlendFunc(pNode, pParent, propertyName.c_str(), blendFunc, pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeFntFile:
+			{
+				std::string fntFile = pCCBReader->getCCBRootPath() + this->parsePropTypeFntFile(pNode, pParent, pCCBReader);
+				if(setProp)
+				{
+					this->onHandlePropTypeFntFile(pNode, pParent, propertyName.c_str(), fntFile.c_str(), pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeFontTTF: {
+				std::string fontTTF = this->parsePropTypeFontTTF(pNode, pParent, pCCBReader);
+				if(setProp) {
+					this->onHandlePropTypeFontTTF(pNode, pParent, propertyName.c_str(), fontTTF.c_str(), pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeString: {
+				std::string string = this->parsePropTypeString(pNode, pParent, pCCBReader);
+				if(setProp) {
+					this->onHandlePropTypeString(pNode, pParent, propertyName.c_str(), string.c_str(), pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeText: {
+				std::string text = this->parsePropTypeText(pNode, pParent, pCCBReader);
+				if(setProp) {
+					this->onHandlePropTypeText(pNode, pParent, propertyName.c_str(), text.c_str(), pCCBReader);
+				}
+				break;
+			}
+			case kCCBPropTypeBlock: {
+				BlockData * blockData = this->parsePropTypeBlock(pNode, pParent, pCCBReader);
+				if(setProp) {
+					this->onHandlePropTypeBlock(pNode, pParent, propertyName.c_str(), blockData, pCCBReader);
+				}
+				CC_SAFE_DELETE(blockData);
+				break;
+			}
+			case kCCBPropTypeBlockCCControl: {
+				BlockCCControlData * blockCCControlData = this->parsePropTypeBlockCCControl(pNode, pParent, pCCBReader);
+				if(setProp && blockCCControlData != NULL) {
+					this->onHandlePropTypeBlockCCControl(pNode, pParent, propertyName.c_str(), blockCCControlData, pCCBReader);
+				}
+				CC_SAFE_DELETE(blockCCControlData);
+				break;
+			}
+			case kCCBPropTypeCCBFile: {
+				CCNode * ccbFileNode = this->parsePropTypeCCBFile(pNode, pParent, pCCBReader);
+				if(setProp) {
+					this->onHandlePropTypeCCBFile(pNode, pParent, propertyName.c_str(), ccbFileNode, pCCBReader);
+				}
+				break;
+			}
+			default:
+				ASSERT_FAIL_UNEXPECTED_PROPERTYTYPE(type);
+				break;
+		}
+	}
+}
+
 void CCNodeLoader::parseProperties(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader) {
     int numRegularProps = pCCBReader->readInt(false);
     int numExturaProps = pCCBReader->readInt(false);
@@ -44,9 +370,9 @@ void CCNodeLoader::parseProperties(CCNode * pNode, CCNode * pParent, CCBReader *
 
         // Check if the property can be set for this platform
         bool setProp = false;
-        
+      
         int platform = pCCBReader->readByte();
-        if(platform == kCCBPlatformAll) 
+        if(platform == kCCBPlatformAll)
         {
             setProp = true;
         }
@@ -64,7 +390,7 @@ void CCNodeLoader::parseProperties(CCNode * pNode, CCNode * pParent, CCBReader *
 //             setProp = true;
 //         }
 // #endif
-        
+      
         // Forward properties for sub ccb files
         if (dynamic_cast<CCBFile*>(pNode) != NULL)
         {
@@ -72,7 +398,7 @@ void CCNodeLoader::parseProperties(CCNode * pNode, CCNode * pParent, CCBReader *
             if (ccbNode->getCCBFileNode() && isExtraProp)
             {
                 pNode = ccbNode->getCCBFileNode();
-                
+              
                 // Skip properties that doesn't have a value to override
                 CCArray *extraPropsNames = (CCArray*)pNode->getUserObject();
                 CCObject* pObj = NULL;
@@ -97,25 +423,25 @@ void CCNodeLoader::parseProperties(CCNode * pNode, CCNode * pParent, CCBReader *
                 extraPropsNames = CCArray::create();
                 pNode->setUserObject(extraPropsNames);
             }
-            
+          
             extraPropsNames->addObject(CCString::create(propertyName));
         }
 
-        switch(type) 
+        switch(type)
         {
-            case kCCBPropTypePosition: 
+            case kCCBPropTypePosition:
             {
                 CCPoint position = this->parsePropTypePosition(pNode, pParent, pCCBReader, propertyName.c_str());
-                if (setProp) 
+                if (setProp)
                 {
                     this->onHandlePropTypePosition(pNode, pParent, propertyName.c_str(), position, pCCBReader);
                 }
                 break;
             }
-            case kCCBPropTypePoint: 
+            case kCCBPropTypePoint:
             {
                 CCPoint point = this->parsePropTypePoint(pNode, pParent, pCCBReader);
-                if (setProp) 
+                if (setProp)
                 {
                     this->onHandlePropTypePoint(pNode, pParent, propertyName.c_str(), point, pCCBReader);
                 }
@@ -553,8 +879,58 @@ bool CCNodeLoader::parsePropTypeCheck(CCNode * pNode, CCNode * pParent, CCBReade
     return ret;
 }
 
+CCSpriteFrame * CCNodeLoader::parsePropTypeSpriteFrameForFullPath(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader, const char *pPropertyName)
+{
+	std::string spriteSheet = pCCBReader->readCachedString();
+	std::string spriteFile = pCCBReader->readCachedString();
+	
+	CCSpriteFrame *spriteFrame = NULL;
+	if (spriteFile.length() != 0)
+	{
+		if (spriteSheet.length() == 0)
+		{
+			spriteFile = pCCBReader->getCCBRootPath() + spriteFile;
+			CCTexture2D * texture = CCTextureCache::sharedTextureCache()->addImage(spriteFile.c_str());
+			if(texture != NULL) {
+				CCRect bounds = CCRectMake(0, 0, texture->getContentSize().width, texture->getContentSize().height);
+				spriteFrame = CCSpriteFrame::createWithTexture(texture, bounds);
+			}
+		}
+		else
+		{
+			CCSpriteFrameCache * frameCache = CCSpriteFrameCache::sharedSpriteFrameCache();
+			spriteSheet = pCCBReader->getCCBRootPath() + spriteSheet;
+			// Load the sprite sheet only if it is not loaded
+			if (pCCBReader->getLoadedSpriteSheet().find(spriteSheet) == pCCBReader->getLoadedSpriteSheet().end())
+			{
+				std::string documentPath;
+#if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
+				documentPath = CCFileUtils::sharedFileUtils()->getWritablePath();
+#elif CC_TARGET_PLATFORM == CC_PLATFORM_IOS
+				NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+				NSString *documentsDirectory = [paths objectAtIndex:0];
+				std::string strRet = [documentsDirectory UTF8String];
+				strRet.append("/");
+				documentPath = strRet;
+#endif
+				
+				frameCache->addSpriteFramesWithFile((documentPath + spriteSheet).c_str(), false);
+				pCCBReader->getLoadedSpriteSheet().insert(spriteSheet);
+			}
+			
+			spriteFrame = frameCache->spriteFrameByName(spriteFile.c_str());
+		}
+		
+		if (pCCBReader->getAnimatedProperties()->find(pPropertyName) != pCCBReader->getAnimatedProperties()->end())
+		{
+			pCCBReader->getAnimationManager()->setBaseValue(spriteFrame, pNode, pPropertyName);
+		}
+	}
+	
+	return spriteFrame;
+}
 
-CCSpriteFrame * CCNodeLoader::parsePropTypeSpriteFrame(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader, const char *pPropertyName) 
+CCSpriteFrame * CCNodeLoader::parsePropTypeSpriteFrame(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader, const char *pPropertyName)
 {
     std::string spriteSheet = pCCBReader->readCachedString();
     std::string spriteFile = pCCBReader->readCachedString();
