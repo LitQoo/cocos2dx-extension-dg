@@ -214,6 +214,7 @@ public:
     CCNode* readNodeGraphFromFile(const char *pCCBFileName);
     CCNode* readNodeGraphFromFile(const char *pCCBFileName, CCObject *pOwner);
     CCNode* readNodeGraphFromFile(const char *pCCBFileName, CCObject *pOwner, const CCSize &parentSize);
+	CCNode* readNodeGraphFromFileForFullPath(const char *pCCBFileName, CCObject *pOwner);
   
 	CCNode*	readNodeGraphFromDataForFullPath(CCData *pData, CCObject *pOwner, const CCSize &parentSize);
     CCNode* readNodeGraphFromData(CCData *pData, CCObject *pOwner, const CCSize &parentSize);

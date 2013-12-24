@@ -230,6 +230,22 @@ CCNode* CCBReader::readNodeGraphFromFile(const char* pCCBFileName, CCObject* pOw
     return this->readNodeGraphFromFile(pCCBFileName, pOwner, CCDirector::sharedDirector()->getWinSize());
 }
 
+CCNode* CCBReader::readNodeGraphFromFileForFullPath(const char *pCCBFileName, CCObject *pOwner)
+{
+    std::string strPath = pCCBFileName;
+    unsigned long size = 0;
+	
+    unsigned char * pBytes = CCFileUtils::sharedFileUtils()->getFileData(strPath.c_str(), "rb", &size);
+    CCData *data = new CCData(pBytes, size);
+    CC_SAFE_DELETE_ARRAY(pBytes);
+	
+    CCNode *ret =  this->readNodeGraphFromData(data, pOwner, CCDirector::sharedDirector()->getWinSize());
+    
+    data->release();
+    
+    return ret;
+}
+
 CCNode* CCBReader::readNodeGraphFromFile(const char *pCCBFileName, CCObject *pOwner, const CCSize &parentSize)
 {
     if (NULL == pCCBFileName || strlen(pCCBFileName) == 0)
