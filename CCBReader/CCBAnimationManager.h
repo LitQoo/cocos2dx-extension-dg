@@ -41,8 +41,8 @@ private:
     std::string lastCompletedSequenceName;
 
     SEL_CallFunc mAnimationCompleteCallbackFunc;
-    CCObject *mTarget;
-    
+    CCObject *mTarget, *mTargetForLambda;
+		std::function<void(void)> mAnimationCompleteCallbackLambda;
     
 public:
     bool jsControlled;
@@ -107,7 +107,7 @@ public:
     void runAnimationsForSequenceIdTweenDuration(int nSeqId, float fTweenDuraiton);
 
     void setAnimationCompletedCallback(CCObject *target, SEL_CallFunc callbackFunc);
-
+		void setAnimationCompletedCallbackLambda(CCObject* target, std::function<void(void)> callbackFunc);
     void debug();
     
     void setCallFunc(CCCallFunc *callFunc, const std::string &callbackNamed);

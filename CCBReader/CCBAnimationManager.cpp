@@ -27,6 +27,7 @@ CCBAnimationManager::CCBAnimationManager()
 , mRunningSequence(NULL)
 , jsControlled(false)
 , mOwner(NULL)
+, mAnimationCompleteCallbackLambda(nullptr)
 {
     init();
 }
@@ -45,8 +46,9 @@ bool CCBAnimationManager::init()
     mKeyframeCallFuncs = new CCDictionary();
 
     mTarget = NULL;
+		mTargetForLambda = nullptr;
     mAnimationCompleteCallbackFunc = NULL;
-    
+		mAnimationCompleteCallbackLambda = nullptr;
     return true;
 }
 
@@ -841,7 +843,17 @@ void CCBAnimationManager::setAnimationCompletedCallback(CCObject *target, SEL_Ca
     mTarget = target;
     mAnimationCompleteCallbackFunc = callbackFunc;
 }
-
+void CCBAnimationManager::setAnimationCompletedCallbackLambda(CCObject* target, std::function<void(void)> callbackFunc)
+{
+	if(target)
+		target->retain();
+	
+	if(mTargetForLambda)
+		mTargetForLambda->release();
+	
+	mTargetForLambda = target;
+	mAnimationCompleteCallbackLambda = callbackFunc;
+}
 void CCBAnimationManager::setCallFunc(CCCallFunc* callFunc, const std::string &callbackNamed) {
     mKeyframeCallFuncs->setObject((CCObject*)callFunc, callbackNamed);
 }
@@ -866,7 +878,12 @@ void CCBAnimationManager::sequenceCompleted()
     if (mTarget && mAnimationCompleteCallbackFunc) {
         (mTarget->*mAnimationCompleteCallbackFunc)();
     }
-    
+  
+		if(mAnimationCompleteCallbackLambda)
+		{
+			mAnimationCompleteCallbackLambda();
+		}
+	
     if (nextSeqId != -1)
     {
         runAnimationsForSequenceIdTweenDuration(nextSeqId, 0);
