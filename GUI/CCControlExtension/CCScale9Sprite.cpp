@@ -814,16 +814,19 @@ void CCScale9Sprite::setOpacity(GLubyte opacity)
 {
     _opacity = opacity;
 
-    CCObject* child;
-    CCArray* children = _scale9Image->getChildren();
-    CCARRAY_FOREACH(children, child)
-    {
+		if(_scale9Image)
+		{
+			CCObject* child;
+			CCArray* children = _scale9Image->getChildren();
+			CCARRAY_FOREACH(children, child)
+			{
         CCRGBAProtocol* pNode = dynamic_cast<CCRGBAProtocol*>(child);
         if (pNode)
         {
-            pNode->setOpacity(opacity);
+					pNode->setOpacity(opacity);
         }
-    }
+			}
+		} 
 }
 
 GLubyte CCScale9Sprite::getOpacity()

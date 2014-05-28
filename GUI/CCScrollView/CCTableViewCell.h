@@ -41,6 +41,7 @@ public:
     /**
      * The index used internally by SWTableView and its subclasses
      */
+		virtual ~CCTableViewCell(){}
     unsigned int getIdx();
     void setIdx(unsigned int uIdx);
     /**
