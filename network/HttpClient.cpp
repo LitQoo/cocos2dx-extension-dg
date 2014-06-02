@@ -467,7 +467,7 @@ void CCHttpClient::send(CCHttpRequest* request)
 // Poll and notify main thread if responses exists in queue
 void CCHttpClient::dispatchResponseCallbacks(float delta)
 {
-    // CCLog("CCHttpClient::dispatchResponseCallbacks is running");
+    // CCLOG("CCHttpClient::dispatchResponseCallbacks is running");
     
     CCHttpResponse* response = NULL;
     
