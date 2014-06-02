@@ -42,7 +42,7 @@ private:
 
     SEL_CallFunc mAnimationCompleteCallbackFunc;
     CCObject *mTarget, *mTargetForLambda;
-		std::function<void(void)> mAnimationCompleteCallbackLambda;
+		std::function<void(const char*)> mAnimationCompleteCallbackLambda;
     
 public:
     bool jsControlled;
@@ -107,7 +107,7 @@ public:
     void runAnimationsForSequenceIdTweenDuration(int nSeqId, float fTweenDuraiton);
 
     void setAnimationCompletedCallback(CCObject *target, SEL_CallFunc callbackFunc);
-		void setAnimationCompletedCallbackLambda(CCObject* target, std::function<void(void)> callbackFunc);
+	void setAnimationCompletedCallbackLambda(CCObject* target, std::function<void(const char*)> callbackFunc);
     void debug();
     
     void setCallFunc(CCCallFunc *callFunc, const std::string &callbackNamed);

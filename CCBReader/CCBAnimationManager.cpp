@@ -843,7 +843,7 @@ void CCBAnimationManager::setAnimationCompletedCallback(CCObject *target, SEL_Ca
     mTarget = target;
     mAnimationCompleteCallbackFunc = callbackFunc;
 }
-void CCBAnimationManager::setAnimationCompletedCallbackLambda(CCObject* target, std::function<void(void)> callbackFunc)
+void CCBAnimationManager::setAnimationCompletedCallbackLambda(CCObject* target, std::function<void(const char*)> callbackFunc)
 {
 	if(target)
 		target->retain();
@@ -881,7 +881,7 @@ void CCBAnimationManager::sequenceCompleted()
   
 		if(mAnimationCompleteCallbackLambda)
 		{
-			mAnimationCompleteCallbackLambda();
+			mAnimationCompleteCallbackLambda(runningSequenceName);
 		}
 	
     if (nextSeqId != -1)
