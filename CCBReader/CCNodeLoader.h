@@ -5,6 +5,7 @@
 #include "cocos2d.h"
 #include "CCBReader.h"
 #include "CCBValue.h"
+#include "ExtensionMacros.h"
 
 NS_CC_EXT_BEGIN
 
@@ -42,18 +43,20 @@ struct BlockCCControlData {
 
 /* Forward declaration. */
 class CCBReader;
-
-class CCNodeLoader : public CCObject {
+/**
+ *  @js NA
+ *  @lua NA
+ */
+class CC_EX_DLL CCNodeLoader : public CCObject {
     public:
         CCNodeLoader();
         virtual ~CCNodeLoader();
         CCB_STATIC_NEW_AUTORELEASE_OBJECT_METHOD(CCNodeLoader, loader);
 
         virtual CCNode * loadCCNode(CCNode *, CCBReader * pCCBReader);
-				void parsePropertiesForFullPath(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader);
         virtual void parseProperties(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader);
         virtual CCDictionary* getCustomProperties();
-    
+        void parsePropertiesForFullPath(CCNode * pNode, CCNode * pParent, CCBReader * pCCBReader);
     protected:
         CCB_VIRTUAL_NEW_AUTORELEASE_CREATECCNODE_METHOD(CCNode);
 

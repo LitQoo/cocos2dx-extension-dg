@@ -27,7 +27,6 @@ CCBAnimationManager::CCBAnimationManager()
 , mRunningSequence(NULL)
 , jsControlled(false)
 , mOwner(NULL)
-, mAnimationCompleteCallbackLambda(nullptr)
 {
     init();
 }
@@ -42,13 +41,13 @@ bool CCBAnimationManager::init()
     mDocumentOutletNodes = new CCArray();
     mDocumentCallbackNames = new CCArray();
     mDocumentCallbackNodes = new CCArray();
+    mDocumentCallbackControlEvents = new CCArray();
     mKeyframeCallbacks = new CCArray();
     mKeyframeCallFuncs = new CCDictionary();
-
+    mAnimationCompleteCallbackLambda = nullptr;
     mTarget = NULL;
-		mTargetForLambda = nullptr;
     mAnimationCompleteCallbackFunc = NULL;
-		mAnimationCompleteCallbackLambda = nullptr;
+    
     return true;
 }
 
@@ -77,7 +76,8 @@ CCBAnimationManager::~CCBAnimationManager()
     CC_SAFE_RELEASE(mDocumentOutletNodes);
     CC_SAFE_RELEASE(mDocumentCallbackNames);
     CC_SAFE_RELEASE(mDocumentCallbackNodes);
-    
+    CC_SAFE_RELEASE(mDocumentCallbackControlEvents);
+
     CC_SAFE_RELEASE(mKeyframeCallFuncs);
     CC_SAFE_RELEASE(mKeyframeCallbacks);
     CC_SAFE_RELEASE(mTarget);
@@ -131,12 +131,22 @@ void CCBAnimationManager::addDocumentCallbackName(std::string name) {
     mDocumentCallbackNames->addObject(tmpName);
 }
 
+void CCBAnimationManager::addDocumentCallbackControlEvents(CCControlEvent eventType)
+{
+    mDocumentCallbackControlEvents->addObject(CCInteger::create((int)eventType));
+}
+
 CCArray* CCBAnimationManager::getDocumentCallbackNames() {
     return mDocumentCallbackNames;
 }
 
 CCArray* CCBAnimationManager::getDocumentCallbackNodes() {
     return mDocumentCallbackNodes;
+}
+
+CCArray* CCBAnimationManager::getDocumentCallbackControlEvents()
+{
+    return mDocumentCallbackControlEvents;
 }
 
 void CCBAnimationManager::addDocumentOutletNode(CCNode *node) {
@@ -845,14 +855,14 @@ void CCBAnimationManager::setAnimationCompletedCallback(CCObject *target, SEL_Ca
 }
 void CCBAnimationManager::setAnimationCompletedCallbackLambda(CCObject* target, std::function<void(const char*)> callbackFunc)
 {
-	if(target)
-		target->retain();
-	
-	if(mTargetForLambda)
-		mTargetForLambda->release();
-	
-	mTargetForLambda = target;
-	mAnimationCompleteCallbackLambda = callbackFunc;
+   if(target)
+       target->retain();
+   
+   if(mTargetForLambda)
+       mTargetForLambda->release();
+   
+   mTargetForLambda = target;
+   mAnimationCompleteCallbackLambda = callbackFunc;
 }
 void CCBAnimationManager::setCallFunc(CCCallFunc* callFunc, const std::string &callbackNamed) {
     mKeyframeCallFuncs->setObject((CCObject*)callFunc, callbackNamed);
@@ -878,12 +888,10 @@ void CCBAnimationManager::sequenceCompleted()
     if (mTarget && mAnimationCompleteCallbackFunc) {
         (mTarget->*mAnimationCompleteCallbackFunc)();
     }
-  
-		if(mTargetForLambda && mAnimationCompleteCallbackLambda)
-		{
-			mAnimationCompleteCallbackLambda(runningSequenceName);
-		}
-	
+    if(mTargetForLambda && mAnimationCompleteCallbackLambda)
+    {
+        mAnimationCompleteCallbackLambda(runningSequenceName);
+    }
     if (nextSeqId != -1)
     {
         runAnimationsForSequenceIdTweenDuration(nextSeqId, 0);

@@ -44,8 +44,11 @@ typedef enum {
 } CCScrollViewDirection;
 
 class CCScrollView;
-
-class CCScrollViewDelegate
+/**
+ *  @js NA
+ *  @lua NA
+ */
+class CC_EX_DLL CCScrollViewDelegate
 {
 public:
     virtual ~CCScrollViewDelegate() {}
@@ -57,11 +60,19 @@ public:
 /**
  * ScrollView support for cocos2d for iphone.
  * It provides scroll view functionalities to cocos2d projects natively.
+ * @lua NA
  */
-class CCScrollView : public CCLayer
+class CC_EX_DLL CCScrollView : public CCLayer
 {
 public:
+    /**
+     *  @js ctor
+     */
     CCScrollView();
+    /**
+     *  @js NA
+     *  @lua NA
+     */
     virtual ~CCScrollView();
 
     bool init();
@@ -93,8 +104,14 @@ public:
      * @return scroll view object
      */
     bool initWithViewSize(CCSize size, CCNode* container = NULL);
-
-
+	/**
+	 * This method makes sure auto scrolling causes delegate to invoke its method
+	 */
+	void performedAnimatedScroll(float dt);
+	/**
+	 * Expire animated scroll delegate calls
+	 */
+	void stoppedAnimatedScroll(CCNode* node);
     /**
      * Sets a new content offset. It ignores max/min offset. It just sets what's given. (just like UIKit's UIScrollView)
      *
@@ -195,14 +212,15 @@ public:
      */
     bool isClippingToBounds() { return m_bClippingToBounds; }
     void setClippingToBounds(bool bClippingToBounds) { m_bClippingToBounds = bClippingToBounds; }
-
+    /**
+     *  @js NA
+     */
     virtual void visit();
     virtual void addChild(CCNode * child, int zOrder, int tag);
     virtual void addChild(CCNode * child, int zOrder);
     virtual void addChild(CCNode * child);
     void setTouchEnabled(bool e);
-//private:
-public: // modify
+private:
     /**
      * Relocates the container at the proper offset, in bounds of max/min offsets.
      *
@@ -216,14 +234,8 @@ public: // modify
      * @param dt delta
      */
     void deaccelerateScrolling(float dt);
-    /**
-     * This method makes sure auto scrolling causes delegate to invoke its method
-     */
-    void performedAnimatedScroll(float dt);
-    /**
-     * Expire animated scroll delegate calls
-     */
-    void stoppedAnimatedScroll(CCNode* node);
+  
+  
     /**
      * clip this view so that outside of the visible bounds can be hidden.
      */
@@ -323,6 +335,17 @@ protected:
      */
     CCRect m_tParentScissorRect;
     bool m_bScissorRestored;
+public:
+    enum ScrollViewScriptEventType
+    {
+        kScrollViewScroll   = 0,
+        kScrollViewZoom,
+    };
+    void registerScriptHandler(int nFunID,int nScriptEventType);
+    void unregisterScriptHandler(int nScriptEventType);
+    int  getScriptHandler(int nScriptEventType);
+private:
+    std::map<int,int> m_mapScriptHandler;
 };
 
 // end of GUI group

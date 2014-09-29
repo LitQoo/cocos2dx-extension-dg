@@ -33,15 +33,16 @@ NS_CC_EXT_BEGIN
 
 /**
  * Abstract class for SWTableView cell node
+ * @lua NA
  */
-class CCTableViewCell: public CCNode, public CCSortableObject
+class CC_EX_DLL CCTableViewCell: public CCNode, public CCSortableObject
 {
 public:
     CCTableViewCell() {}
+    virtual ~CCTableViewCell(){}
     /**
      * The index used internally by SWTableView and its subclasses
      */
-		virtual ~CCTableViewCell(){}
     unsigned int getIdx();
     void setIdx(unsigned int uIdx);
     /**
