@@ -46,6 +46,7 @@ bool CCBAnimationManager::init()
     mKeyframeCallFuncs = new CCDictionary();
     mAnimationCompleteCallbackLambda = nullptr;
     mTarget = NULL;
+		mTargetForLambda = nullptr;
     mAnimationCompleteCallbackFunc = NULL;
     
     return true;
