@@ -9,7 +9,7 @@
 #include "SimpleAudioEngine.h"
 #include "CCBSelectorResolver.h"
 
-#include "DataStorageHub.h"
+//#include "DataStorageHub.h"
 
 using namespace cocos2d;
 using namespace std;
@@ -31,9 +31,9 @@ CCBAnimationManager::CCBAnimationManager()
 , mOwner(NULL)
 {
     init();
-	myDSH->ccb_animation_manager_count++;
-	myDSH->changedCcbAnimationManager();
-	myDSH->regiCcbAnimationManager(this);
+//	myDSH->ccb_animation_manager_count++;
+//	myDSH->changedCcbAnimationManager();
+//	myDSH->regiCcbAnimationManager(this);
 }
 
 bool CCBAnimationManager::init()
@@ -72,9 +72,9 @@ CCBAnimationManager::~CCBAnimationManager()
 //         node->release();
 //     }
     
-	myDSH->ccb_animation_manager_count--;
-	myDSH->changedCcbAnimationManager();
-	myDSH->unregiCcbAnimationManager(this);
+//	myDSH->ccb_animation_manager_count--;
+//	myDSH->changedCcbAnimationManager();
+//	myDSH->unregiCcbAnimationManager(this);
 	
     mNodeSequences->release();
     mBaseValues->release();
