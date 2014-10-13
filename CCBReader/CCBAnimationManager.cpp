@@ -90,7 +90,7 @@ CCBAnimationManager::~CCBAnimationManager()
 
     CC_SAFE_RELEASE(mKeyframeCallFuncs);
     CC_SAFE_RELEASE(mKeyframeCallbacks);
-    CC_SAFE_RELEASE(mTarget);
+//    CC_SAFE_RELEASE(mTarget);
 }
 
 CCArray* CCBAnimationManager::getSequences()
@@ -850,27 +850,27 @@ void CCBAnimationManager::debug()
 }
 
 void CCBAnimationManager::setAnimationCompletedCallback(CCObject *target, SEL_CallFunc callbackFunc) {
-    if (target)
-    {
-        target->retain();
-    }
-    
-    if (mTarget)
-    {
-        mTarget->release();
-    }
-    
+//    if (target)
+//    {
+//        target->retain();
+//    }
+//    
+//    if (mTarget)
+//    {
+//        mTarget->release();
+//    }
+	
     mTarget = target;
     mAnimationCompleteCallbackFunc = callbackFunc;
 }
 void CCBAnimationManager::setAnimationCompletedCallbackLambda(CCObject* target, std::function<void(const char*)> callbackFunc)
 {
-   if(target)
-       target->retain();
-   
-   if(mTargetForLambda)
-       mTargetForLambda->release();
-   
+//   if(target)
+//       target->retain();
+//   
+//   if(mTargetForLambda)
+//       mTargetForLambda->release();
+	
    mTargetForLambda = target;
    mAnimationCompleteCallbackLambda = callbackFunc;
 }

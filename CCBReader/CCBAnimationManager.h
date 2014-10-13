@@ -19,7 +19,7 @@ public:
     virtual void completedAnimationSequenceNamed(const char *name) = 0;
 };
 
-class CC_EX_DLL CCBAnimationManager : public CCObject
+class CC_EX_DLL CCBAnimationManager : public CCNode
 {
 private:
     CCArray *mSequences;

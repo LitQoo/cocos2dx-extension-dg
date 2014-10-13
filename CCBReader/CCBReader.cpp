@@ -258,7 +258,7 @@ CCNode* CCBReader::readNodeGraphFromDataForFullPath(CCData *pData, CCObject *pOw
 	{
 		CCNode* pNode = (CCNode*)pElement->getIntKey();
 		CCBAnimationManager* manager = (CCBAnimationManager*)animationManagers->objectForKey((intptr_t)pNode);
-		pNode->setUserObject(manager);
+//		pNode->setUserObject(manager);
 		
 		if (jsControlled)
 		{
@@ -516,13 +516,13 @@ CCNode* CCBReader::readNodeGraphFromFileForFullPath(const char *pCCBFileName, CC
     std::string strPath = pCCBFileName;
     unsigned long size = 0;
 
-	CCLOG("AAAAA %s", pCCBFileName);
+//	CCLOG("AAAAA %s", pCCBFileName);
     unsigned char * pBytes = CCFileUtils::sharedFileUtils()->getFileData(strPath.c_str(), "rb", &size);
     CCData *data = new CCData(pBytes, size);
     CC_SAFE_DELETE_ARRAY(pBytes);
-  CCLOG("AAAAA2");
+//  CCLOG("AAAAA2");
     CCNode *ret =  this->readNodeGraphFromData(data, pOwner, CCDirector::sharedDirector()->getWinSize());
-    CCLOG("AAAAA3");
+//    CCLOG("AAAAA3");
     data->release();
     
     return ret;
@@ -588,7 +588,7 @@ CCNode* CCBReader::readNodeGraphFromData(CCData *pData, CCObject *pOwner, const 
     {
         CCNode* pNode = (CCNode*)pElement->getIntKey();
         CCBAnimationManager* manager = (CCBAnimationManager*)animationManagers->objectForKey((intptr_t)pNode);
-        pNode->setUserObject(manager);
+//        pNode->setUserObject(manager);
 
         if (jsControlled)
         {
