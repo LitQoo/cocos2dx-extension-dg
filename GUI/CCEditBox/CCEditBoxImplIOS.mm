@@ -93,7 +93,7 @@ static const int CC_EDIT_BOX_PADDING = 5;
 -(void) doAnimationWhenKeyboardMoveWithDuration:(float)duration distance:(float)distance
 {
     id eglView = [EAGLView sharedEGLView];
-    [eglView doAnimationWhenKeyboardMoveWithDuration:duration distance:distance];
+//    [eglView doAnimationWhenKeyboardMoveWithDuration:duration distance:distance];
 }
 
 -(void) setPosition:(CGPoint) pos
